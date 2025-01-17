@@ -28,25 +28,45 @@ def preprocess_text(text):
 # Apply text preprocessing
 df['Message'] = df['Message'].apply(preprocess_text)
 
-# Verify changes
-print(df[['Message']].head())
+# Drop rows where 'Message' or 'Date' are missing
+df.dropna(subset=['Message', 'Date'], inplace=True)
+
+# Reset index after dropping rows
+df.reset_index(drop=True, inplace=True)
+
+# Create separate metadata dataframe
+metadata_df = df[['Channel Title', 'Channel Username', 'ID', 'Date']].copy()
+
+# Save metadata to a new CSV file
+metadata_df.to_csv('data/telegram_metadata.csv', index=False)
+
+# Save the preprocessed data into a new CSV file
+df.to_csv('data/telegram_data_preprocessed.csv', index=False)
+
+
 
 import os
-import sys
 
-# Specify the desired file path
-directory = "C:\\Users\\Aman\\Desktop\\kifyaw5\\data"
-filename = "pre_processed.csv"
-file_path = os.path.join(directory, filename)
+def validate_media_paths(media_path):
+    # Check if the media path is a valid string
+    if isinstance(media_path, str) and media_path.strip():
+        return os.path.isfile(media_path)  # Return True if the file exists
+    return False  # Return False for invalid or missing paths
 
-# Ensure the directory exists
-if not os.path.exists(directory):
-    print(f"Directory {directory} does not exist. Creating it...")
-    os.makedirs(directory)
 
-# Write data to the file
-with open(file_path, 'w') as file:
-    file.write("Hello, this is an example file.")
+# Add a column to indicate if the media path is valid
+df['Media Valid'] = df['Media Path'].apply(validate_media_paths)
 
-print(f"File saved at: {file_path}") 
+# Filter out rows with invalid media paths
+df = df[df['Media Valid']]
+
+# Drop the validation column before saving
+df.drop(columns=['Media Valid'], inplace=True)
+
+# Save the updated dataset
+df.to_csv('data/telegram_data_preprocessed_valid.csv', index=False)
+
+
+
+
 
